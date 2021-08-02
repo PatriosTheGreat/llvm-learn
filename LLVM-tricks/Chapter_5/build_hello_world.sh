@@ -1,0 +1,1 @@
+clang++ -### -std=c++11 -Wall ./hello_world.cpp -o hello_world
