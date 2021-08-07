@@ -1,0 +1,15 @@
+namespace 'namespace'    [StartOfLine]  Loc=<token_sample.cc:1:1>
+identifier 'foo'         [LeadingSpace] Loc=<token_sample.cc:1:11>
+l_brace '{'      [LeadingSpace] Loc=<token_sample.cc:1:15>
+class 'class'    [StartOfLine] [LeadingSpace]   Loc=<token_sample.cc:2:3>
+identifier 'MyClass'     [LeadingSpace] Loc=<token_sample.cc:2:9>
+l_brace '{'      [LeadingSpace] Loc=<token_sample.cc:2:17>
+r_brace '}'             Loc=<token_sample.cc:2:18>
+semi ';'                Loc=<token_sample.cc:2:19>
+r_brace '}'      [StartOfLine]  Loc=<token_sample.cc:3:1>
+identifier 'foo'         [StartOfLine]  Loc=<token_sample.cc:4:1>
+coloncolon '::'         Loc=<token_sample.cc:4:4>
+identifier 'MyClass'            Loc=<token_sample.cc:4:6>
+identifier 'Obj'         [LeadingSpace] Loc=<token_sample.cc:4:14>
+semi ';'                Loc=<token_sample.cc:4:17>
+eof ''          Loc=<token_sample.cc:4:18>

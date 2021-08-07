@@ -1,0 +1,11 @@
+# 1 "defiene_sample.c"
+# 1 "<built-in>" 1
+# 1 "<built-in>" 3
+# 341 "<built-in>" 3
+# 1 "<command line>" 1
+# 1 "<built-in>" 2
+# 1 "defiene_sample.c" 2
+
+int foo(int x) {
+  return x + 4;
+}
