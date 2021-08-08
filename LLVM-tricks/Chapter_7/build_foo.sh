@@ -1,0 +1,1 @@
+clang -Xclang -ast-dump foo.c
