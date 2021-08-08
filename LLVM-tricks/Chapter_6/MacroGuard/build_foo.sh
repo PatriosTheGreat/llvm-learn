@@ -1,0 +1,1 @@
+clang -fplugin=./MacroGuardPlugin.so foo.cc
