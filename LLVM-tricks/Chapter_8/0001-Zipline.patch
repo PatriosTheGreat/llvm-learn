@@ -1,0 +1,346 @@
+From ac533b8172bd468e257c9fdf0d4b3931a64ea868 Mon Sep 17 00:00:00 2001
+From: Levon Ter-Grigoryan <leonidusspartus@gmail.com>
+Date: Tue, 17 Aug 2021 18:22:04 +0200
+Subject: [PATCH] Zipline
+
+---
+ clang/include/clang/Driver/Options.td   |  16 +++-
+ clang/lib/Driver/CMakeLists.txt         |   1 +
+ clang/lib/Driver/Driver.cpp             |   4 +-
+ clang/lib/Driver/ToolChains/Clang.cpp   |  56 ++++++++++++
+ clang/lib/Driver/ToolChains/Zipline.cpp | 114 ++++++++++++++++++++++++
+ clang/lib/Driver/ToolChains/Zipline.h   |  71 +++++++++++++++
+ 6 files changed, 260 insertions(+), 2 deletions(-)
+ create mode 100644 clang/lib/Driver/ToolChains/Zipline.cpp
+ create mode 100644 clang/lib/Driver/ToolChains/Zipline.h
+
+diff --git a/clang/include/clang/Driver/Options.td b/clang/include/clang/Driver/Options.td
+index 817798926650..7b36b882d8fb 100644
+--- a/clang/include/clang/Driver/Options.td
++++ b/clang/include/clang/Driver/Options.td
+@@ -4074,7 +4074,21 @@ defm whole_program : BooleanFFlag<"whole-program">, Group<clang_ignored_gcc_opti
+ defm devirtualize : BooleanFFlag<"devirtualize">, Group<clang_ignored_gcc_optimization_f_Group>;
+ defm devirtualize_speculatively : BooleanFFlag<"devirtualize-speculatively">,
+     Group<clang_ignored_gcc_optimization_f_Group>;
+-
++def fuse_simple_log : Flag<["-"], "fuse-simple-log">,
++                      Group<f_Group>, Flags<[NoXarchOption]>;
++defm use_debug_simple_log : BooleanFFlag<"use-debug-simple-log">,
++                            Group<f_Group>, Flags<[NoXarchOption]>;
++defm use_error_simple_log : BooleanFFlag<"use-error-simple-log">,
++                            Group<f_Group>, Flags<[NoXarchOption]>;
++defm use_info_simple_log : BooleanFFlag<"use-info-simple-log">,
++                           Group<f_Group>, Flags<[NoXarchOption]>;
++// simple log path
++def fsimple_log_path_EQ : Joined<["-"], "fsimple-log-path=">,
++                          Group<f_Group>, Flags<[NoXarchOption]>;
++def fuse_simple_log_EQ : Joined<["-"], "fuse-simple-log=">,
++                         Group<f_Group>, Flags<[NoXarchOption]>;
++// zipline toolchain
++def zipline : Flag<["-", "--"], "zipline">, Flags<[NoXarchOption]>;
+ // Generic gfortran options.
+ def A_DASH : Joined<["-"], "A-">, Group<gfortran_Group>;
+ def J : JoinedOrSeparate<["-"], "J">, Flags<[RenderJoined]>, Group<gfortran_Group>;
+diff --git a/clang/lib/Driver/CMakeLists.txt b/clang/lib/Driver/CMakeLists.txt
+index aeffcf0bb43a..2c08786a34c1 100644
+--- a/clang/lib/Driver/CMakeLists.txt
++++ b/clang/lib/Driver/CMakeLists.txt
+@@ -74,6 +74,7 @@ add_clang_library(clangDriver
+   ToolChains/PPCLinux.cpp
+   ToolChains/InterfaceStubs.cpp
+   ToolChains/ZOS.cpp
++  ToolChains/Zipline.cpp
+   Types.cpp
+   XRayArgs.cpp
+ 
+diff --git a/clang/lib/Driver/Driver.cpp b/clang/lib/Driver/Driver.cpp
+index 418e1d3e8ec9..94abe15c8950 100644
+--- a/clang/lib/Driver/Driver.cpp
++++ b/clang/lib/Driver/Driver.cpp
+@@ -47,6 +47,7 @@
+ #include "ToolChains/WebAssembly.h"
+ #include "ToolChains/XCore.h"
+ #include "ToolChains/ZOS.h"
++#include "ToolChains/Zipline.h"
+ #include "clang/Basic/TargetID.h"
+ #include "clang/Basic/Version.h"
+ #include "clang/Config/config.h"
+@@ -5118,7 +5119,8 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
+                                                               Args);
+       else if (Target.getArch() == llvm::Triple::ve)
+         TC = std::make_unique<toolchains::VEToolChain>(*this, Target, Args);
+-
++      else if (Args.hasArg(options::OPT_zipline))
++        TC = std::make_unique<toolchains::ZiplineToolChain>(*this, Target, Args);
+       else
+         TC = std::make_unique<toolchains::Linux>(*this, Target, Args);
+       break;
+diff --git a/clang/lib/Driver/ToolChains/Clang.cpp b/clang/lib/Driver/ToolChains/Clang.cpp
+index 1976b48e0f6a..124da7861d39 100644
+--- a/clang/lib/Driver/ToolChains/Clang.cpp
++++ b/clang/lib/Driver/ToolChains/Clang.cpp
+@@ -6337,6 +6337,62 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
+                      options::OPT_mno_unsafe_fp_atomics))
+       CmdArgs.push_back("-munsafe-fp-atomics");
+   }
++  struct SimpleLogOpts {
++    bool Debug = false,
++         Error = false,
++         Info = false;
++
++    static inline SimpleLogOpts All() {
++      return {true, true, true};
++    }
++
++    // if any of the level is enabled
++    inline operator bool() const {
++      return Debug || Error || Info;
++    }
++  };
++  SimpleLogOpts SLG;
++
++  // By default turn on all the simple log features
++  if (Args.hasArg(options::OPT_fuse_simple_log,
++                  options::OPT_fuse_simple_log_EQ)) {
++    SLG = SimpleLogOpts::All();
++  }
++  // Debug simple log
++  SLG.Debug = Args.hasFlag(options::OPT_fuse_debug_simple_log,
++                           options::OPT_fno_use_debug_simple_log,
++                           SLG.Debug);
++  // Error simple log
++  SLG.Error = Args.hasFlag(options::OPT_fuse_error_simple_log,
++                           options::OPT_fno_use_error_simple_log,
++                           SLG.Error);
++  // Info simple log
++  SLG.Info = Args.hasFlag(options::OPT_fuse_info_simple_log,
++                          options::OPT_fno_use_info_simple_log,
++                          SLG.Info);
++  if (SLG) {
++    // include `simple_log.h` implicitly
++    CmdArgs.push_back("-include");
++    // resolve path of `simple_log.h`
++    if (Arg *A = Args.getLastArg(options::OPT_fuse_simple_log_EQ,
++                                 options::OPT_fsimple_log_path_EQ))
++      CmdArgs.push_back(A->getValue());
++    else
++      CmdArgs.push_back("simple_log.h");
++
++    if (SLG.Debug) {
++      CmdArgs.push_back("-D");
++      CmdArgs.push_back("SLG_ENABLE_DEBUG");
++    }
++    if (SLG.Error) {
++      CmdArgs.push_back("-D");
++      CmdArgs.push_back("SLG_ENABLE_ERROR");
++    }
++    if (SLG.Info) {
++      CmdArgs.push_back("-D");
++      CmdArgs.push_back("SLG_ENABLE_INFO");
++    }
++  }
+ 
+   // For all the host OpenMP offloading compile jobs we need to pass the targets
+   // information using -fopenmp-targets= option.
+diff --git a/clang/lib/Driver/ToolChains/Zipline.cpp b/clang/lib/Driver/ToolChains/Zipline.cpp
+new file mode 100644
+index 000000000000..9b9f2eca68f3
+--- /dev/null
++++ b/clang/lib/Driver/ToolChains/Zipline.cpp
+@@ -0,0 +1,114 @@
++#include "Zipline.h"
++
++#include "CommonArgs.h"
++#include "clang/Driver/Compilation.h"
++#include "clang/Driver/Driver.h"
++#include "clang/Driver/DriverDiagnostic.h"
++#include "clang/Driver/Options.h"
++#include "llvm/ADT/SmallString.h"
++#include "llvm/Option/ArgList.h"
++#include "llvm/Support/FileSystem.h"
++
++using namespace clang::driver;
++using namespace clang::driver::toolchains;
++using namespace clang;
++using namespace llvm::opt;
++
++void tools::zipline::Assembler::ConstructJob(Compilation &C,
++                                             const JobAction &JA,
++                                             const InputInfo &Output,
++                                             const InputInfoList &Inputs,
++                                             const ArgList &Args,
++                                             const char *LinkingOutput) const {
++  ArgStringList CmdArgs;
++  const InputInfo &II = Inputs[0];
++
++  // base64 arguments
++  CmdArgs.push_back("base64");
++  Args.AddAllArgValues(CmdArgs, options::OPT_Wa_COMMA, options::OPT_Xassembler);
++  CmdArgs.push_back("-in");
++  CmdArgs.push_back(II.getFilename());
++  CmdArgs.push_back("-out");
++  CmdArgs.push_back(Output.getFilename());
++
++  std::string Exec =
++      Args.MakeArgString(getToolChain().GetProgramPath("openssl"));
++  C.addCommand(std::make_unique<Command>(JA, *this, ResponseFileSupport::None(),
++                                         Args.MakeArgString(Exec), CmdArgs,
++                                         Inputs, Output));
++}
++
++void tools::zipline::Linker::buildZipArgs(const JobAction &JA,
++                                          const InputInfo &Output,
++                                          const InputInfoList &Inputs,
++                                          const ArgList &Args,
++                                          ArgStringList &CmdArgs) const {
++  // output file
++  StringRef OutFile = Output.getFilename();
++  if (!OutFile.endswith(".zip"))
++    CmdArgs.push_back(
++      Args.MakeArgString(OutFile + ".zip"));
++  else
++    CmdArgs.push_back(OutFile.data());
++  // input files
++  AddLinkerInputs(getToolChain(), Inputs, Args, CmdArgs, JA);
++}
++
++void tools::zipline::Linker::buildTarArgs(const JobAction &JA,
++                                          const InputInfo &Output,
++                                          const InputInfoList &Inputs,
++                                          const ArgList &Args,
++                                          ArgStringList &CmdArgs) const {
++  // arguments and output file
++  CmdArgs.push_back("-czf");
++  StringRef OutFile = Output.getFilename();
++  if (!OutFile.endswith(".tar.gz"))
++    CmdArgs.push_back(
++      Args.MakeArgString(OutFile + ".tar.gz"));
++  else
++    CmdArgs.push_back(OutFile.data());
++  // input files
++  AddLinkerInputs(getToolChain(), Inputs, Args, CmdArgs, JA);
++}
++
++void tools::zipline::Linker::ConstructJob(Compilation &C, const JobAction &JA,
++                                          const InputInfo &Output,
++                                          const InputInfoList &Inputs,
++                                          const ArgList &Args,
++                                          const char *LinkingOutput) const {
++  ArgStringList CmdArgs;
++  std::string Compressor = "zip";
++  if (Arg *A = Args.getLastArg(options::OPT_fuse_ld_EQ))
++    Compressor = A->getValue();
++
++  if (Compressor == "zip")
++    buildZipArgs(JA, Output, Inputs, Args, CmdArgs);
++  if (Compressor == "tar" || Compressor == "gzip")
++    buildTarArgs(JA, Output, Inputs, Args, CmdArgs);
++  else
++    llvm_unreachable("Unsupported compressor name");
++
++  std::string Exec =
++      Args.MakeArgString(getToolChain().GetProgramPath(Compressor.c_str()));
++  C.addCommand(std::make_unique<Command>(
++      JA, *this, ResponseFileSupport::None(), Args.MakeArgString(Exec),
++      CmdArgs, Inputs, Output));
++}
++
++ZiplineToolChain::~ZiplineToolChain() {}
++
++void ZiplineToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
++                                                 ArgStringList &CC1Args) const {
++  using namespace llvm;
++  SmallString<16> CustomIncludePath;
++  sys::fs::expand_tilde("~/my_include", CustomIncludePath);
++  addSystemInclude(DriverArgs, CC1Args, CustomIncludePath.c_str());
++}
++
++Tool *ZiplineToolChain::buildAssembler() const {
++  return new tools::zipline::Assembler(*this);
++}
++
++Tool *ZiplineToolChain::buildLinker() const {
++  return new tools::zipline::Linker(*this);
++}
+\ No newline at end of file
+diff --git a/clang/lib/Driver/ToolChains/Zipline.h b/clang/lib/Driver/ToolChains/Zipline.h
+new file mode 100644
+index 000000000000..78a6e245aa35
+--- /dev/null
++++ b/clang/lib/Driver/ToolChains/Zipline.h
+@@ -0,0 +1,71 @@
++#ifndef LLVM_CLANG_LIB_DRIVER_TOOLCHAINS_ZIPLINE_H
++#define LLVM_CLANG_LIB_DRIVER_TOOLCHAINS_ZIPLINE_H
++
++#include "Gnu.h"
++
++#include "clang/Driver/Tool.h"
++#include "clang/Driver/ToolChain.h"
++
++namespace clang {
++namespace driver {
++namespace tools {
++
++/// Zipline - A demo toolchain
++namespace zipline {
++struct LLVM_LIBRARY_VISIBILITY Assembler : public Tool {
++  Assembler(const ToolChain &TC) : Tool("zipeline::toBase64", "toBase64", TC) {}
++
++  bool hasIntegratedCPP() const override { return false; }
++
++  void ConstructJob(Compilation &C, const JobAction &JA,
++                    const InputInfo &Output, const InputInfoList &Inputs,
++                    const llvm::opt::ArgList &TCArgs,
++                    const char *LinkingOutput) const override;
++};
++
++struct LLVM_LIBRARY_VISIBILITY Linker : public Tool {
++  Linker(const ToolChain &TC) : Tool("zipeline::zipper", "zipper", TC) {}
++
++  bool hasIntegratedCPP() const override { return false; }
++
++  bool isLinkJob() const override { return true; }
++
++  void ConstructJob(Compilation &C, const JobAction &JA,
++                    const InputInfo &Output, const InputInfoList &Inputs,
++                    const llvm::opt::ArgList &TCArgs,
++                    const char *LinkingOutput) const override;
++
++private:
++  void buildZipArgs(const JobAction&, const InputInfo&, const InputInfoList&,
++                    const llvm::opt::ArgList&, llvm::opt::ArgStringList&) const;
++  void buildTarArgs(const JobAction&, const InputInfo&, const InputInfoList&,
++                    const llvm::opt::ArgList&, llvm::opt::ArgStringList&) const;
++};
++} // end namespace zipline
++} // end namespace tools
++
++namespace toolchains {
++struct LLVM_LIBRARY_VISIBILITY ZiplineToolChain : public Generic_ELF {
++  ZiplineToolChain(const Driver &D, const llvm::Triple &Triple,
++                   const llvm::opt::ArgList &Args)
++    : Generic_ELF(D, Triple, Args) {}
++
++  ~ZiplineToolChain() override;
++
++  // Disable the integrated assembler. Otherwise Clang will emit
++  // object file on x86_64 platforms by default.
++  bool IsIntegratedAssemblerDefault() const override { return false; }
++  bool useIntegratedAs() const override { return false; }
++
++  void
++  AddClangSystemIncludeArgs(const llvm::opt::ArgList &DriverArgs,
++                            llvm::opt::ArgStringList &CC1Args) const override;
++
++protected:
++  Tool *buildAssembler() const override;
++  Tool *buildLinker() const override;
++};
++} // end namespace toolchains
++} // end namespace driver
++} // end namespace clang
++#endif
+\ No newline at end of file
+-- 
+2.29.2.windows.2
+
