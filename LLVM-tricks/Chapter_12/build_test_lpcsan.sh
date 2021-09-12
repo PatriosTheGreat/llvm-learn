@@ -1,0 +1,1 @@
+../../../llvm-project/build_x64/bin/clang -O1 -fsanitize=loop-counter test_lpcsan.c -o test_lpcsan
