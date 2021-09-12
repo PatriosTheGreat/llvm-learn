@@ -1,0 +1,1 @@
+../../../llvm-project/build_x64/bin/opt -time-trace -time-trace-file=my_trace.json licm_sample.ll -disable-output

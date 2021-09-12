@@ -1,0 +1,233 @@
+--- !Passed
+Pass:            licm
+Name:            InstSunk
+DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 5 }
+Function:        foo
+Args:
+  - String:          'sinking '
+  - Inst:            getelementptr
+    DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 5 }
+...
+--- !Passed
+Pass:            licm
+Name:            InstSunk
+DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 5 }
+Function:        foo
+Args:
+  - String:          'sinking '
+  - Inst:            zext
+    DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 5 }
+...
+--- !Missed
+Pass:            gvn
+Name:            LoadClobbered
+DebugLoc:        { File: opt_remark_licm.c, Line: 0, Column: 0 }
+Function:        foo
+Args:
+  - String:          'load of type '
+  - Type:            i32
+  - String:          ' not eliminated'
+  - String:          ' because it is clobbered by '
+  - ClobberedBy:     store
+    DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 10 }
+...
+--- !Passed
+Pass:            licm
+Name:            InstSunk
+DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 5 }
+Function:        foo
+Args:
+  - String:          'sinking '
+  - Inst:            getelementptr
+    DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 5 }
+...
+--- !Missed
+Pass:            inline
+Name:            NoDefinition
+DebugLoc:        { File: opt_remark_licm.c, Line: 13, Column: 21 }
+Function:        main
+Args:
+  - Callee:          malloc
+  - String:          ' will not be inlined into '
+  - Caller:          main
+    DebugLoc:        { File: opt_remark_licm.c, Line: 12, Column: 0 }
+  - String:          ' because its definition is unavailable'
+...
+--- !Passed
+Pass:            inline
+Name:            Inlined
+DebugLoc:        { File: opt_remark_licm.c, Line: 15, Column: 5 }
+Function:        main
+Args:
+  - Callee:          foo
+    DebugLoc:        { File: opt_remark_licm.c, Line: 3, Column: 0 }
+  - String:          ' inlined into '
+  - Caller:          main
+    DebugLoc:        { File: opt_remark_licm.c, Line: 12, Column: 0 }
+  - String:          ' with '
+  - String:          '(cost='
+  - Cost:            '-5'
+  - String:          ', threshold='
+  - Threshold:       '250'
+  - String:          ')'
+...
+--- !Passed
+Pass:            licm
+Name:            InstSunk
+DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 5 }
+Function:        main
+Args:
+  - String:          'sinking '
+  - Inst:            getelementptr
+    DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 5 }
+...
+--- !Passed
+Pass:            licm
+Name:            InstSunk
+DebugLoc:        { File: opt_remark_licm.c, Line: 14, Column: 34 }
+Function:        main
+Args:
+  - String:          'sinking '
+  - Inst:            getelementptr
+    DebugLoc:        { File: opt_remark_licm.c, Line: 14, Column: 34 }
+...
+--- !Passed
+Pass:            licm
+Name:            InstSunk
+DebugLoc:        { File: opt_remark_licm.c, Line: 14, Column: 34 }
+Function:        main
+Args:
+  - String:          'sinking '
+  - Inst:            zext
+    DebugLoc:        { File: opt_remark_licm.c, Line: 14, Column: 34 }
+...
+--- !Passed
+Pass:            loop-unroll
+Name:            FullyUnrolled
+DebugLoc:        { File: opt_remark_licm.c, Line: 5, Column: 3 }
+Function:        main
+Args:
+  - String:          'completely unrolled loop with '
+  - UnrollCount:     '4'
+  - String:          ' iterations'
+...
+--- !Passed
+Pass:            loop-idiom
+Name:            ProcessLoopStridedStore
+DebugLoc:        { File: opt_remark_licm.c, Line: 14, Column: 39 }
+Function:        main
+Args:
+  - String:          'Transformed loop-strided store into a call to '
+  - NewFunction:     llvm.memset.p0i8.i64
+  - String:          '() function'
+...
+--- !Passed
+Pass:            gvn
+Name:            LoadElim
+DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 10 }
+Function:        main
+Args:
+  - String:          'load of type '
+  - Type:            i32
+  - String:          ' eliminated'
+  - String:          ' in favor of '
+  - InfavorOfValue:  '0'
+...
+--- !Passed
+Pass:            gvn
+Name:            LoadElim
+DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 10 }
+Function:        main
+Args:
+  - String:          'load of type '
+  - Type:            i32
+  - String:          ' eliminated'
+  - String:          ' in favor of '
+  - InfavorOfValue:  '0'
+...
+--- !Passed
+Pass:            gvn
+Name:            LoadElim
+DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 10 }
+Function:        main
+Args:
+  - String:          'load of type '
+  - Type:            i32
+  - String:          ' eliminated'
+  - String:          ' in favor of '
+  - InfavorOfValue:  '0'
+...
+--- !Passed
+Pass:            gvn
+Name:            LoadElim
+DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 10 }
+Function:        main
+Args:
+  - String:          'load of type '
+  - Type:            i32
+  - String:          ' eliminated'
+  - String:          ' in favor of '
+  - InfavorOfValue:  '0'
+...
+--- !Missed
+Pass:            loop-vectorize
+Name:            VectorizationNotBeneficial
+DebugLoc:        { File: opt_remark_licm.c, Line: 5, Column: 3 }
+Function:        foo
+Args:
+  - String:          the cost-model indicates that vectorization is not beneficial
+...
+--- !Missed
+Pass:            loop-vectorize
+Name:            InterleavingNotBeneficial
+DebugLoc:        { File: opt_remark_licm.c, Line: 5, Column: 3 }
+Function:        foo
+Args:
+  - String:          the cost-model indicates that interleaving is not beneficial
+...
+--- !Passed
+Pass:            licm
+Name:            InstSunk
+DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 5 }
+Function:        foo
+Args:
+  - String:          'sinking '
+  - Inst:            getelementptr
+    DebugLoc:        { File: opt_remark_licm.c, Line: 6, Column: 5 }
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: opt_remark_licm.c, Line: 3, Column: 0 }
+Function:        foo
+Args:
+  - NumStackBytes:   '0'
+  - String:          ' stack bytes in function'
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: opt_remark_licm.c, Line: 3, Column: 0 }
+Function:        foo
+Args:
+  - NumInstructions: '10'
+  - String:          ' instructions in function'
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: opt_remark_licm.c, Line: 12, Column: 0 }
+Function:        main
+Args:
+  - NumStackBytes:   '0'
+  - String:          ' stack bytes in function'
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: opt_remark_licm.c, Line: 12, Column: 0 }
+Function:        main
+Args:
+  - NumInstructions: '2'
+  - String:          ' instructions in function'
+...

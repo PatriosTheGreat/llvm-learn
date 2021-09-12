@@ -1,0 +1,1 @@
+clang -O3 -ftime-trace -c opt_remark_licm.c
