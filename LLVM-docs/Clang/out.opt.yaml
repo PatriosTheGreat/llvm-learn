@@ -1,0 +1,187 @@
+--- !Missed
+Pass:            inline
+Name:            NeverInline
+DebugLoc:        { File: sample.cc, Line: 4, Column: 25 }
+Function:        _Z3fooi
+Args:
+  - Callee:          _Z3fooi
+    DebugLoc:        { File: sample.cc, Line: 3, Column: 0 }
+  - String:          ' not inlined into '
+  - Caller:          _Z3fooi
+    DebugLoc:        { File: sample.cc, Line: 3, Column: 0 }
+  - String:          ' because it should never be inlined '
+  - String:          '(cost=never)'
+  - String:          ': '
+  - Reason:          no alwaysinline attribute
+...
+--- !Missed
+Pass:            inline
+Name:            NoDefinition
+DebugLoc:        { File: sample.cc, Line: 8, Column: 15 }
+Function:        main
+Args:
+  - Callee:          _ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKc
+  - String:          ' will not be inlined into '
+  - Caller:          main
+    DebugLoc:        { File: sample.cc, Line: 7, Column: 0 }
+  - String:          ' because its definition is unavailable'
+...
+--- !Missed
+Pass:            inline
+Name:            NoDefinition
+DebugLoc:        { File: sample.cc, Line: 8, Column: 30 }
+Function:        main
+Args:
+  - Callee:          _ZNSolsEi
+  - String:          ' will not be inlined into '
+  - Caller:          main
+    DebugLoc:        { File: sample.cc, Line: 7, Column: 0 }
+  - String:          ' because its definition is unavailable'
+...
+--- !Missed
+Pass:            inline
+Name:            NoDefinition
+DebugLoc:        { File: sample.cc, Line: 8, Column: 40 }
+Function:        main
+Args:
+  - Callee:          _ZNSolsEPFRSoS_E
+  - String:          ' will not be inlined into '
+  - Caller:          main
+    DebugLoc:        { File: sample.cc, Line: 7, Column: 0 }
+  - String:          ' because its definition is unavailable'
+...
+--- !Missed
+Pass:            inline
+Name:            NeverInline
+DebugLoc:        { File: sample.cc, Line: 8, Column: 33 }
+Function:        main
+Args:
+  - Callee:          _Z3fooi
+    DebugLoc:        { File: sample.cc, Line: 3, Column: 0 }
+  - String:          ' not inlined into '
+  - Caller:          main
+    DebugLoc:        { File: sample.cc, Line: 7, Column: 0 }
+  - String:          ' because it should never be inlined '
+  - String:          '(cost=never)'
+  - String:          ': '
+  - Reason:          no alwaysinline attribute
+...
+--- !Missed
+Pass:            inline
+Name:            NoDefinition
+DebugLoc:        { File: '/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9/iostream', 
+                   Line: 74, Column: 25 }
+Function:        __cxx_global_var_init
+Args:
+  - Callee:          _ZNSt8ios_base4InitC1Ev
+  - String:          ' will not be inlined into '
+  - Caller:          __cxx_global_var_init
+    DebugLoc:        { File: '/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9/iostream', 
+                       Line: 74, Column: 0 }
+  - String:          ' because its definition is unavailable'
+...
+--- !Missed
+Pass:            inline
+Name:            NoDefinition
+DebugLoc:        { File: '/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9/iostream', 
+                   Line: 74, Column: 25 }
+Function:        __cxx_global_var_init
+Args:
+  - Callee:          __cxa_atexit
+  - String:          ' will not be inlined into '
+  - Caller:          __cxx_global_var_init
+    DebugLoc:        { File: '/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9/iostream', 
+                       Line: 74, Column: 0 }
+  - String:          ' because its definition is unavailable'
+...
+--- !Missed
+Pass:            inline
+Name:            NeverInline
+DebugLoc:        { File: sample.cc, Line: 0, Column: 0 }
+Function:        _GLOBAL__sub_I_sample.cc
+Args:
+  - Callee:          __cxx_global_var_init
+    DebugLoc:        { File: '/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9/iostream', 
+                       Line: 74, Column: 0 }
+  - String:          ' not inlined into '
+  - Caller:          _GLOBAL__sub_I_sample.cc
+    DebugLoc:        { File: sample.cc, Line: 0, Column: 0 }
+  - String:          ' because it should never be inlined '
+  - String:          '(cost=never)'
+  - String:          ': '
+  - Reason:          no alwaysinline attribute
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: '/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9/iostream', 
+                   Line: 74, Column: 0 }
+Function:        __cxx_global_var_init
+Args:
+  - NumStackBytes:   '8'
+  - String:          ' stack bytes in function'
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: '/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9/iostream', 
+                   Line: 74, Column: 0 }
+Function:        __cxx_global_var_init
+Args:
+  - NumInstructions: '11'
+  - String:          ' instructions in function'
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: sample.cc, Line: 3, Column: 0 }
+Function:        _Z3fooi
+Args:
+  - NumStackBytes:   '24'
+  - String:          ' stack bytes in function'
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: sample.cc, Line: 3, Column: 0 }
+Function:        _Z3fooi
+Args:
+  - NumInstructions: '20'
+  - String:          ' instructions in function'
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: sample.cc, Line: 7, Column: 0 }
+Function:        main
+Args:
+  - NumStackBytes:   '24'
+  - String:          ' stack bytes in function'
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: sample.cc, Line: 7, Column: 0 }
+Function:        main
+Args:
+  - NumInstructions: '21'
+  - String:          ' instructions in function'
+...
+--- !Analysis
+Pass:            prologepilog
+Name:            StackSize
+DebugLoc:        { File: sample.cc, Line: 0, Column: 0 }
+Function:        _GLOBAL__sub_I_sample.cc
+Args:
+  - NumStackBytes:   '8'
+  - String:          ' stack bytes in function'
+...
+--- !Analysis
+Pass:            asm-printer
+Name:            InstructionCount
+DebugLoc:        { File: sample.cc, Line: 0, Column: 0 }
+Function:        _GLOBAL__sub_I_sample.cc
+Args:
+  - NumInstructions: '5'
+  - String:          ' instructions in function'
+...
